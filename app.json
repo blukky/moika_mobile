@@ -1,14 +1,22 @@
 {
   "expo": {
     "name": "moika_mobile",
-    "slug": "moika_mobile",
+    "slug": "moika",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
+    "plugins": [
+      [
+        "expo-document-picker",
+        {
+          "appleTeamId": "YOUR_TEAM_ID"
+        }
+      ]
+    ],
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#6e7476"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -17,13 +25,27 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to scan barcodes on event tickets.",
+        "NSFaceIDUsageDescription": "Enabling Face ID allows you quick and secure access to your account.",
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "usesIcloudStorage": true,
+          "NSAllowsArbitraryLoadsForMedia": true,
+          "NSAllowsLocalNetworking": true,
+          "UIBackgroundModes": [
+            "audio"
+          ]
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#FFFFFF"
-      }
+        "backgroundColor": "#6e7476"
+      },
+      "package": "startrek.moika"
     },
     "web": {
       "favicon": "./assets/favicon.png"
