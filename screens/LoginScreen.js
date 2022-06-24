@@ -23,7 +23,7 @@ function LoginScreen({ navigation }) {
 
     useLayoutEffect(() => {
         (async () => {
-            await AsyncStorage.removeItem("token");
+            // await AsyncStorage.removeItem("token");
             // await AsyncStorage.removeItem("first_join_app");
             const token = await AsyncStorage.getItem("token");
             // let lastStock = await AsyncStorage.getAllKeys()
@@ -126,7 +126,7 @@ function LoginScreen({ navigation }) {
                             <Text style={styles.text_gray}>с Политикой и условиями</Text>
                             <Text style={styles.text_gray}>использования сервиса</Text>
                         </View>
-                        <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('Data')} style={styles.mt} >
+                        <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('MainMenu')} style={styles.mt} >
                             <Text style={{ color: '#7CD0D7', fontSize: 11 }}>пропустить</Text>
 
                         </TouchableOpacity>
@@ -176,7 +176,8 @@ const styles = StyleSheet.create({
         marginLeft: "1%",
         fontSize: 14,
         color: '#fff',
-        fontFamily: 'Raleway_400Regular'
+        fontFamily: 'Raleway_400Regular',
+        width:'100%'
     },
 
 
