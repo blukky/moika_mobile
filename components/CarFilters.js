@@ -9,20 +9,25 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { domain_web } from '../domain';
 import { Picker } from '@react-native-picker/picker';
-
+import * as Location from "expo-location";
+import { getPermissionLocation } from '../permissions';
 
 
 
 function CarFilters({ navigation, route }) {
+
 
   const [filters, setFilters] = useState([]);
   const [sort, setSort] = useState(["По расстоянию", "По рейтингу"]);
   const [bSort, setBSort] = useState(false);
   const [selectSort, setSelectSort] = useState(route.params.sorted);
   const [check, setCheck] = useState(route.params.filters);
+  const [perm, setPerm] = useState(true);
 
   useLayoutEffect(() => {
     (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      setPerm(status === "granted");
       const res = await axios.get(domain_web + "/get_filter");
       setFilters([...res.data, { name: "Безналичный расчет" }, { name: "Наличный расчет" }])
     })();
@@ -41,7 +46,7 @@ function CarFilters({ navigation, route }) {
 
 
   const sendFilters = () => {
-      navigation.replace("CarWashes", {"sorted": selectSort, "filters":check})
+    navigation.replace("CarWashes", { "sorted": selectSort, "filters": check })
   }
 
 
@@ -50,14 +55,14 @@ function CarFilters({ navigation, route }) {
       <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       {/* <BlurView intensity={100} style={styles.blurContainer}> */}
       <View style={styles.blurContainer}>
-        <TouchableOpacity onPress={() => navigation.replace('CarWashes', {"sorted": 0, "filters":[]})} activeOpacity={0.7} style={{}}>
+        <TouchableOpacity onPress={() => navigation.replace('CarWashes', { "sorted": 0, "filters": [] })} activeOpacity={0.7} style={{}}>
           <Ionicons name='close' size={28} color={'#7CD0D7'} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
           <Text style={styles.bold_text}>Фильтр</Text>
         </View>
 
-        <View>
+        {perm &&<View>
           <LinearGradient
             colors={['#01010199', '#35343499']}
             start={[0, 1]}
@@ -68,14 +73,14 @@ function CarFilters({ navigation, route }) {
                 <Text style={styles.text}>{sort[selectSort]}</Text>
               </View>
             </TouchableOpacity>
-            {bSort && <Picker
+             {bSort && <Picker
               selectedValue={selectSort}
-              onValueChange={(value, index) => setSelectSort(index)}>
-              <Picker.Item label="Расстояние" value={0} />
-              <Picker.Item label="Рейтинг" value={1} />
+              onValueChange={(value, index) => setSelectSort(value)}>
+              <Picker.Item color='#fff' label="Расстояние" value={0} />
+              <Picker.Item label="Рейтинг" color='#fff' value={1} />
             </Picker>}
           </LinearGradient>
-        </View>
+        </View>}
 
 
         <LinearGradient

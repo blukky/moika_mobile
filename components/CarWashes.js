@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState, useLayoutEffect, useEffect } from 'react';
-import { StyleSheet, Button, View, Text, SafeAreaView, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, Image, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, Button, View, Text, SafeAreaView, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, Image, Alert, RefreshControl, FlatList, ImageEditor } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -21,10 +21,64 @@ function CarWashes({ navigation, route }) {
   const [stock, setStock] = useState([]);
   const [countCar, setCountCar] = useState(0);
   const [location, setLocation] = useState("");
-  const [coords, setCoords] = useState(null);
+  const [coords, setCoords] = useState({});
   const [locations, setLocations] = useState([]);
   const [bView, setBVeiw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [bLocation, setBLocation] = useState(false);
+
+
+  const dist_sort = (a, b, coords) => {
+    if (getDistance(coords, { latitude: parseFloat(a.lat), longitude: parseFloat(a.lon) }) < getDistance(coords, { latitude: parseFloat(b.lat), longitude: parseFloat(b.lon) })) {
+      return -1;
+    }
+    if (getDistance(coords, { latitude: parseFloat(a.lat), longitude: parseFloat(a.lon) }) > getDistance(coords, { latitude: parseFloat(b.lat), longitude: parseFloat(b.lon) })) {
+      return 1;
+    }
+    return 0
+  }
+
+
+  const rate_sort = (a, b) => {
+    if (a.rate.count_rate == 0) {
+      return 1;
+    }
+    if (b.rate.count_rate == 0) {
+      return -1;
+    }
+    if (a.rate.count_rate == 0 && b.rate.count_rate == 0) {
+      return 0;
+    }
+    if ((a.rate.mean_rate / a.rate.count_rate).toFixed(2) < (b.rate.mean_rate / b.rate.count_rate).toFixed(2)) {
+      return 1;
+    }
+    if ((a.rate.mean_rate / a.rate.count_rate).toFixed(2) > (b.rate.mean_rate / b.rate.count_rate).toFixed(2)) {
+      return -1;
+    }
+    return 0
+
+  }
+
+  const WashesSorted = (washes, coord) => {
+    if (route.params == undefined) {
+      if (coord == {}) {
+        return washes;
+      } else {
+        return washes.sort((a, b) => dist_sort(a, b, coord));
+      }
+    }
+    if (route.params.sorted == 1) {
+      return washes.sort(rate_sort);;
+    }
+    else {
+      if (coord == {}) {
+        return washes;
+      } else {
+        return washes.sort((a, b) => dist_sort(a, b, coord));
+      }
+    }
+  }
+
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -42,11 +96,10 @@ function CarWashes({ navigation, route }) {
         });
       }
       let { status } = await Location.requestForegroundPermissionsAsync();
+      setBLocation(status === 'granted')
       if (status !== 'granted') {
-        console.log("Not location");
+        Alert.alert("Ошибка", "Необходимо включить определение геопозиции");
       }
-      const col = await Location.getLastKnownPositionAsync();
-      setCoords({ latitude: col.coords.latitude, longitude: col.coords.longitude })
       try {
         const ret = await axios.get(domain_web + "/get_country")
         setLocations(ret.data.country)
@@ -68,8 +121,14 @@ function CarWashes({ navigation, route }) {
             }
           }
         );
+        if (status == "granted") {
+          const col = await Location.getLastKnownPositionAsync();
+          setCoords({ latitude: col.coords.latitude, longitude: col.coords.longitude });
+          setWashes(WashesSorted(res.data.washer, { latitude: col.coords.latitude, longitude: col.coords.longitude }));
+        } else {
+          setWashes(res.data.washer.sort(rate_sort));
+        }
         setStock(res.data.stock);
-        setWashes(res.data.washer);
         const token = await AsyncStorage.getItem("token");
         if (token != null) {
           const cars = await axios.get(domain_mobile + "/api/get_cars", { headers: { "Authorization": "Token " + token } });
@@ -111,6 +170,7 @@ function CarWashes({ navigation, route }) {
 
 
   const newLocation = async (value) => {
+    let { status } = await Location.requestForegroundPermissionsAsync();
     setLoading(true);
     setLocation(value);
     await AsyncStorage.setItem("location", value);
@@ -125,15 +185,23 @@ function CarWashes({ navigation, route }) {
         }
       }
     );
+    if (status == "granted") {
+      const col = await Location.getLastKnownPositionAsync();
+      setCoords({ latitude: col.coords.latitude, longitude: col.coords.longitude });
+      setWashes(WashesSorted(res.data.washer, { latitude: col.coords.latitude, longitude: col.coords.longitude }));
+    } else {
+      setWashes(res.data.washer.sort(rate_sort));
+    }
     setStock(res.data.stock);
-    setWashes(res.data.washer);
     setLoading(false)
   }
 
 
   const refresh = async () => {
+
     setRefresing(true);
     try {
+      let { status } = await Location.requestForegroundPermissionsAsync();
       const location = await AsyncStorage.getItem("location");
       setLocation(location)
       const phone = await AsyncStorage.getItem("phone");
@@ -147,8 +215,14 @@ function CarWashes({ navigation, route }) {
           }
         }
       );
+      if (status == "granted") {
+        const col = await Location.getLastKnownPositionAsync();
+        setCoords({ latitude: col.coords.latitude, longitude: col.coords.longitude });
+        setWashes(WashesSorted(res.data.washer, { latitude: col.coords.latitude, longitude: col.coords.longitude }));
+      } else {
+        setWashes(res.data.washer.sort(rate_sort));
+      }
       setStock(res.data.stock);
-      setWashes(res.data.washer);
       const token = await AsyncStorage.getItem("token");
       const cars = await axios.get(domain_mobile + "/api/get_cars", { headers: { "Authorization": "Token " + token } });
       setCountCar(cars.data.length);
@@ -159,13 +233,53 @@ function CarWashes({ navigation, route }) {
     }
   }
 
+  const EmptyComponent = () => {
+    return (
+      <View style={{}}>
+        <Text>В данном городе автомоек с такими фильтрами нет</Text>
+      </View>
+    )
+  }
+
+  const renderWashes = ({ item }) => {
+    return (<TouchableOpacity onPress={() => selectWasher(item.id, item.sale)} activeOpacity={0.7} style={styles.mt_TouchOpac}>
+      <LinearGradient
+        colors={['#01010199', '#35343499']}
+        start={[0, 1]}
+        style={styles.gradient_background} >
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <Image source={{ uri: domain_web + item.avatar }} style={{ width: 100, height: 100 }} width={100} height={100} />
+          <View style={{ marginRight: '20%' }}>
+            <Text style={styles.stocks}>{item.address}</Text>
+            <Text style={styles.text_in_item}>Скидка {item.sale}%</Text>
+            <Text style={styles.text_in_item}>{bLocation && "В " + getDistance(coords, { latitude: parseFloat(item.lat), longitude: parseFloat(item.lon) }) + " м от вас"}</Text>
+          </View>
+          <LinearGradient colors={['#FFF73780', '#FFF97480']} start={[1, 0]} style={styles.rating} >
+            <Text style={styles.stocks}>{item.rate.count_rate == 0 ? "0.00" : (item.rate.mean_rate / item.rate.count_rate).toFixed(2)}</Text>
+          </LinearGradient>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>)
+  }
+
+  const renderStock = ({item}) => {
+    return (
+      <TouchableOpacity activeOpacity={0.7} style={styles.mt_TouchOpac}>
+        <LinearGradient colors={['#FFF737', '#7CD0D7']} start={[1, 0]} style={styles.gradient_btn} >
+          <Text style={styles.subtext_stocks}>{item.date}</Text>
+          <Text style={styles.text_stocks}>{item.text}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    )
+  }
+
   return (
     <SafeAreaView style={styles.container} >
-      <ScrollView style={styles.main}>
-        <RefreshControl
+      <View style={styles.main}>
+        {/* <RefreshControl
           refreshing={refreshing}
           onRefresh={refresh}
-        />
+        /> */}
         <Text style={styles.subtext}>местоположение</Text>
         <TouchableOpacity activeOpacity={0.7} onPress={() => setBVeiw(!bView)}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: '0%' }}>
@@ -190,44 +304,30 @@ function CarWashes({ navigation, route }) {
           <View style={{ alignItems: 'center' }}>
             <Text style={styles.stocks}>Акции</Text>
           </View>
-          {stock.map((obj, ind) => {
-            return (
-              <TouchableOpacity key={ind} activeOpacity={0.7} style={styles.mt_TouchOpac}>
-                <LinearGradient colors={['#FFF737', '#7CD0D7']} start={[1, 0]} style={styles.gradient_btn} >
-                  <Text style={styles.subtext_stocks}>{obj.date}</Text>
-                  <Text style={styles.text_stocks}>{obj.text}</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-            )
-          })}
+          <FlatList
+          style={{height: "20%"}}
+          showsVerticalScrollIndicator={false}
+          data={stock}
+          keyExtractor={item => item.text}
+          renderItem={renderStock}
+          />
         </LinearGradient>
 
         <View style={{ marginBottom: 50 }}>
-          {!loading ? washes.map((obj, ind) => {
-            return (
-              <TouchableOpacity key={obj.id} onPress={() => selectWasher(obj.id, obj.sale)} activeOpacity={0.7} style={styles.mt_TouchOpac}>
-                <LinearGradient
-                  colors={['#01010199', '#35343499']}
-                  start={[0, 1]}
-                  style={styles.gradient_background} >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <Image source={{ uri: domain_web + obj.avatar }} style={{ width: 100, height: 100 }} width={100} height={100} />
-                    <View style={{ marginRight: '20%' }}>
-                      <Text style={styles.stocks}>{obj.address}</Text>
-                      <Text style={styles.text_in_item}>Скидка {obj.sale}%</Text>
-                      <Text style={styles.text_in_item}>В {getDistance(coords, { latitude: parseFloat(obj.lat), longitude: parseFloat(obj.lon) })}м от вас</Text>
-                    </View>
-                    <LinearGradient colors={['#FFF73780', '#FFF97480']} start={[1, 0]} style={styles.rating} >
-                      <Text style={styles.stocks}>{obj.rate.count_rate == 0 ? "0.00" : (obj.rate.mean_rate / obj.rate.count_rate).toFixed(2)}</Text>
-                    </LinearGradient>
-                  </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            )
-          }) : <ActivityIndicator /> }
+          {!loading ?
+            <FlatList
+              style={{ height: "100%" }}
+              data={washes}
+              keyExtractor={item => item.id}
+              refreshing={refreshing}
+              onRefresh={refresh}
+              renderItem={renderWashes}
+              ListEmptyComponent={<EmptyComponent />}
+            />
+            : <ActivityIndicator />}
         </View>
 
-      </ScrollView>
+      </View>
       {/* <View style={styles.container}>
       <BottomSheet
         ref={bottomSheetRef}

@@ -99,11 +99,11 @@ function OrderDetails({ navigation, route }) {
               <Text style={styles.text_btn} >Оценить обслуживание</Text>
             </ImageBackground>
           </TouchableOpacity>) :
-          <TouchableOpacity activeOpacity={0.8} onPress={deleteOrder} style={styles.mt_TouchOpac} >
+          (order.status == "Запланирован" && <TouchableOpacity activeOpacity={0.8} onPress={deleteOrder} style={styles.mt_TouchOpac} >
             <ImageBackground source={require('../assets/images/button.png')} resizeMode='stretch' style={styles.bg_img} >
               <Text style={styles.text_btn} >ОТМЕНИТЬ ЗАКАЗ</Text>
             </ImageBackground>
-          </TouchableOpacity>
+          </TouchableOpacity>)
         }
 
       </ScrollView>

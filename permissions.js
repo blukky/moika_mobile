@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-
+import { Alert } from 'react-native';
 
 
 export const getPermissionImage = async () => {
@@ -19,10 +19,10 @@ export const getPermissionImage = async () => {
 
 export const getPermissionLocation = async () => {
     const res = await Location.getForegroundPermissionsAsync();
-    if (res !== 'granted') {
+    if (res.status !== 'granted') {
         let { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert("Ошибка", "Необходимо включить опредеение геопозиции");
+            Alert.alert("Ошибка", "Необходимо включить определение геопозиции");
             return false;
         }
         return true;
