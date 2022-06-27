@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { TouchableOpacity } from 'react-native'
 import { Ionicons } from '@expo/vector-icons';
 import AppLoading from 'expo-app-loading';
+import {View, Text} from 'react-native';
 import { Raleway_400Regular, Raleway_700Bold, useFonts } from '@expo-google-fonts/raleway';
 import { Montserrat_400Regular, Montserrat_700Bold } from '@expo-google-fonts/montserrat';
 import LoginScreen from './screens/LoginScreen';
@@ -11,7 +12,7 @@ import DataScreen from './screens/DataScreen';
 import VerificationCodeScreen from './screens/VerificationCodeScreen';
 import MainMenuScreen from './screens/MainMenuScreen';
 import HowItWorksScreen from './screens/HowItWorksScreen';
-
+import *  as SplashScreen from "expo-splash-screen"
 
 const Stack = createNativeStackNavigator();
 
@@ -21,7 +22,8 @@ export default function App({ navigation }) {
     Raleway_400Regular, Raleway_700Bold, Montserrat_400Regular, Montserrat_700Bold,
   });
   if (!fontsLoaded) {
-    return <AppLoading />;
+    SplashScreen.preventAutoHideAsync();
+    return <View />
   }
 
   return (

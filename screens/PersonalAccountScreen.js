@@ -48,7 +48,7 @@ function PersonalAccountScreen({ navigation }) {
           textTransform: 'uppercase',
         },
         headerLeft: () => (
-          <TouchableOpacity onPress={() => navigation.replace("PersonalAccountScreen")} activeOpacity={0.7}>
+          <TouchableOpacity onPress={() => navigation.navigate("PersonalAccountScreen")} activeOpacity={0.7}>
             <Ionicons name='chevron-back' size={28} color={'#7CD0D7'} />
             </TouchableOpacity>
         ),

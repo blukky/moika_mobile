@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, ImageBackground, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome, SimpleLineIcons } from '@expo/vector-icons';
@@ -9,43 +9,59 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { domain_mobile } from '../domain';
+import { getPermissionImage } from '../permissions';
+import * as SplashScreen from "expo-splash-screen";
 function Feedback({ navigation }) {
 
 
   const [file, setFile] = useState(null);
   const [text, setText] = useState("");
-
+  const [permission, setPermission] = useState();
 
   const Documents = async () => {
-    const result = await DocumentPicker.getDocumentAsync();
-    if (result.type == 'success') {
-      setFile({"name": result.name,
-                "type": result.mimeType,
-                "uri": result.uri});
+    console.log(permission);
+    if (permission) {
+      let result = await ImagePicker.launchImageLibraryAsync();
+      if (!result.cancelled) {
+        let shir = result.uri.split(".")
+        shir = shir[shir.length - 1]
+        setFile({
+          uri: result.uri,
+          type: 'image/' + shir,
+          name: `img.${shir}`
+        });
+      }
+    }else{
+      setPermission(await getPermissionImage());
     }
-
   };
 
+  useEffect((() => {
+    (async () => {
+      setPermission(await getPermissionImage());
+    })();
+  }), [navigation])
+
   const Send = async () => {
-    try{
+    try {
       const token = await AsyncStorage.getItem("token");
       const data = new FormData();
       data.append('text', text);
       data.append("file", file);
-      const res  = await axios.post(domain_mobile + "/api/support",
-                                      data,
-                                        {
-                                          headers:{
-                                            "Authorization": "Token " + token,
-                                            'Accept': 'application/json',
-                                          }
-                                        })
+      const res = await axios.post(domain_mobile + "/api/support",
+        data,
+        {
+          headers: {
+            "Authorization": "Token " + token,
+            'Accept': 'application/json',
+          }
+        })
       navigation.replace("MainMenu")
     }
-    catch (err){
+    catch (err) {
       console.log(err);
     }
-                      
+
   }
 
 
@@ -88,7 +104,7 @@ function Feedback({ navigation }) {
         start={[1, 0]}
         style={styles.gradient_background_comment} >
 
-        <TextInput style={styles.text} value={text} onChangeText={text => setText(text)}  multiline={true} placeholder='Описание проблемы' placeholderTextColor={'#B2B2B2'} />
+        <TextInput style={styles.text} value={text} onChangeText={text => setText(text)} multiline={true} placeholder='Описание проблемы' placeholderTextColor={'#B2B2B2'} />
       </LinearGradient>
 
       <TouchableOpacity activeOpacity={0.8} onPress={Send} >

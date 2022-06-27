@@ -1,18 +1,28 @@
 import React, { useLayoutEffect, useState } from 'react'
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, TextInput, ImageBackground, Image } from 'react-native'
+import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity, TextInput, ImageBackground, Image, Alert } from 'react-native'
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { domain_mobile } from "../domain";
+import { domain_mobile, domain_web } from "../domain";
 import * as Location from 'expo-location';
+import { getPermissionLocation } from "../permissions";
+import { Picker } from '@react-native-picker/picker';
+import { validate } from 'react-email-validator';
+
+
+
+
+
+
 
 function DataScreen({ navigation }) {
 
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [location, setLocation] = useState("Краснодар");
-
+    const [country, setCountry] = useState([]);
+    const [bView, setBView] = useState(false);
 
     useLayoutEffect(() => {
         (async () => {
@@ -27,10 +37,14 @@ function DataScreen({ navigation }) {
                         "Authorization": 'Token ' + token
                     }
                 });
-                console.log(res.data);
+                const ret = await axios.get(domain_web + "/get_country")
+                setCountry(ret.data.country);
                 setName(res.data.first_name);
                 setEmail(res.data.email);
-                setLocation(res.data.location[0].location)
+                if (res.data.location.location != null) {
+                    setLocation(res.data.location.location)
+                }
+
             }
             catch (err) {
                 console.log(err);
@@ -41,39 +55,39 @@ function DataScreen({ navigation }) {
 
 
     const getLocation = async () => {
-        const res = await Location.getForegroundPermissionsAsync()
-        if (res !== 'granted') {
-            let { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') {
-               Alert.alert("Ошибка", "Необходимо включить опредеение геопозиции");
-               return;
-            }
-         }
-        
-        let location = await Location.getLastKnownPositionAsync();
-        let geocod = await Location.reverseGeocodeAsync({latitude: location.coords.latitude, longitude: location.coords.longitude});
-        setLocation(geocod[0].city)
+        const permiss = await getPermissionLocation();
+        if (permiss) {
+            let location = await Location.getLastKnownPositionAsync();
+            let geocod = await Location.reverseGeocodeAsync({ latitude: location.coords.latitude, longitude: location.coords.longitude });
+            setLocation(geocod[0].city)
+        }
+
     }
 
 
     const sendData = async () => {
         try {
-            const token = await AsyncStorage.getItem('token');
-            const res = await axios.post(domain_mobile + "/api/send_user_info",
-                {
-                    'name': name,
-                    'email': email,
-                    'location': location
-                },
-                {
-                    headers: {
-                        "Authorization": "Token " + token
-                    }
-                })
-            await AsyncStorage.setItem("location", location);
-            await AsyncStorage.setItem("name", name),
-            await AsyncStorage.setItem("email", email)
-            navigation.navigate('MainMenu');
+            if (validate(email) || email === "") {
+                const token = await AsyncStorage.getItem('token');
+                const res = await axios.post(domain_mobile + "/api/send_user_info",
+                    {
+                        'name': name,
+                        'email': email,
+                        'location': location
+                    },
+                    {
+                        headers: {
+                            "Authorization": "Token " + token
+                        }
+                    })
+                await AsyncStorage.setItem("location", location);
+                await AsyncStorage.setItem("name", name),
+                    await AsyncStorage.setItem("email", email)
+                navigation.navigate('MainMenu');
+            }else{
+                Alert.alert("Ошибка", "Введен неверный формат почты");
+            }
+
         }
         catch (err) {
             console.log(err);
@@ -98,9 +112,10 @@ function DataScreen({ navigation }) {
                     </View>
                 </LinearGradient>
 
-                <TouchableOpacity  activeOpacity={0.7} >
-                    <LinearGradient colors={['#7BCFD6', '#FFF737']} start={[1, 0]} style={styles.gradient_btn} >
-                        <View style={styles.text_with_background}>
+
+                <LinearGradient colors={['#7BCFD6', '#FFF737']} start={[1, 0]} style={styles.gradient_btn} >
+                    <View style={styles.text_with_background}>
+                        <TouchableOpacity activeOpacity={0.7} onPress={() => setBView(!bView)}>
                             <Text style={styles.subtext}>местоположение</Text>
                             <View style={styles.row}>
                                 <Text style={styles.text}>{location}</Text>
@@ -111,9 +126,16 @@ function DataScreen({ navigation }) {
                                     </TouchableOpacity>
                                 </View>
                             </View>
-                        </View>
-                    </LinearGradient>
-                </TouchableOpacity>
+                        </TouchableOpacity>
+                        {bView && <Picker
+                            selectedValue={location}
+                            itemStyle={{ height: 150 }}
+                            onValueChange={(value, index) => setLocation(value)}>
+                            {country.map(obj => <Picker.Item color='#fff' key={obj} label={obj} value={obj} />)}
+                        </Picker>}
+                    </View>
+                </LinearGradient>
+
 
                 <TouchableOpacity activeOpacity={0.8} onPress={sendData} style={styles.mt} >
                     <ImageBackground source={require('../assets/images/button.png')} resizeMode='stretch' style={styles.bg_img} >

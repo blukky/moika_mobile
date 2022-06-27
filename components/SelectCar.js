@@ -44,11 +44,11 @@ function SelectCar({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image blurRadius={100} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
+      <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       <View style={styles.blurContainer}>
-        <View style={[styles.row, { justifyContent: 'center', marginTop: '5%' }]}>
+        <View style={[styles.row, { justifyContent: 'center', alignItems: "center", width: "100%", marginTop: '5%' }]}>
           {/* <View style={styles.row}> */}
-          <TouchableOpacity onPress={() => navigation.navigate('SelectDate')} activeOpacity={0.7} style={{ position: 'absolute', zIndex: 1 }}>
+          <TouchableOpacity onPress={() => navigation.navigate('SelectDate')} activeOpacity={0.7} style={{ position: 'absolute', left: "3%", zIndex: 1 }}>
             <Ionicons name='chevron-back' size={28} color={'#7CD0D7'} />
           </TouchableOpacity>
           {/* <TouchableOpacity onPress={() => navigation.navigate('AddCarInMakingOrder')} activeOpacity={0.7} style={{}}>

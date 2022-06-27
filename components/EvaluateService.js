@@ -33,7 +33,7 @@ function EvaluateService({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <Image blurRadius={100} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
+      <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       {/* <BlurView intensity={100} style={styles.blurContainer}> */}
       <View style={styles.blurContainer}>
         <TouchableOpacity onPress={() => navigation.navigate('OrderDetails')} activeOpacity={0.7} style={{}}>

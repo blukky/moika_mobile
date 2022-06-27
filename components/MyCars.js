@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, ImageBackground } from 'react-native';
+import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, ImageBackground, FlatList } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, SimpleLineIcons } from '@expo/vector-icons';
 import React, { useState, useLayoutEffect, useEffect } from 'react';
@@ -44,23 +44,32 @@ function MyCars({ navigation }) {
 
 
 
-  const CarView = ({obj}) => {
+  const carView = ({item}) => {
+    console.log(item);
     return (
       <View style={styles.gradient_background_padding}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', }}>
-          <Text style={styles.text}>{obj.body}</Text>
-          <Text style={styles.bold_text}>{obj.number}</Text>
+          <Text style={styles.text}>{item.body}</Text>
+          <Text style={styles.bold_text}>{item.number}</Text>
           <View style={styles.btn_edit}>
-            <TouchableOpacity onPress={() => navigation.navigate('AddEditCar', {"body": obj.body, "number":obj.number, "id": obj.id, "title": "Редактирование авто"})} activeOpacity={0.7} style={{ marginRight: '5%' }}>
+            <TouchableOpacity onPress={() => navigation.navigate('AddEditCar', {"body": item.body, "number":item.number, "id": item.id, "title": "Редактирование авто"})} activeOpacity={0.7} style={{ marginRight: '5%' }}>
               <SimpleLineIcons name='pencil' size={28} color={'#7CD0D7'} />
             </TouchableOpacity>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => deleteCar(obj)}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => deleteCar(item)}>
               <Ionicons name='trash-outline' size={28} color={'#AE0000'} />
             </TouchableOpacity>
           </View>
         </View>
         <LinearGradient colors={['#00266F', '#7BCFD6']} start={[1, 0]} style={styles.gradient_line} />
       </View>)
+  }
+
+  const EmptyComponent = () => {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Нет машин</Text>
+      </View>
+    )
   }
 
 
@@ -72,9 +81,12 @@ function MyCars({ navigation }) {
           colors={['#01010199', '#35343499']}
           start={[0, 1]}
           style={styles.gradient_background} >
-          {cars.map((obj) => {
-            return <CarView obj={obj} key={obj.id} />
-          })}
+          <FlatList
+            data={cars}
+            ListEmptyComponent={<EmptyComponent />}
+            keyExtractor={item => item.id}
+            renderItem={carView}
+          />
         </LinearGradient>
 
       </View>

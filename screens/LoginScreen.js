@@ -7,6 +7,7 @@ import { domain_mobile, domain_web } from '../domain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import MaskInput from 'react-native-mask-input';
 import { Picker } from '@react-native-picker/picker';
+import * as SplashScreen from "expo-splash-screen"
 
 function LoginScreen({ navigation }) {
     // const LoginScreen = ({ navigation }) => {
@@ -38,23 +39,23 @@ function LoginScreen({ navigation }) {
             // }
             if (token != null) {
                 navigation.replace("MainMenu");
+                return;
             }
-            const first_join_app = await AsyncStorage.getItem("first_join_app");
-            if (first_join_app != null) {
-                const res = await axios.get(domain_web + "/get_code_region");
-                setRegions(res.data);
-                setSelectReg(0)
-            } else {
-                navigation.navigate("how_it_works");
-            }
-
+            const res = await axios.get(domain_web + "/get_code_region");
+            console.log(res);
+            setRegions(res.data);
+            setSelectReg(0)
         })()
 
     }, [navigation])
 
     useEffect(async () => {
-
-    }, [])
+        await SplashScreen.hideAsync();
+        const first_join_app = await AsyncStorage.getItem("first_join_app");
+        if (first_join_app == null) {
+            navigation.navigate("how_it_works");
+        }
+    }, [navigation])
 
 
     const setCode = async () => {
@@ -65,7 +66,8 @@ function LoginScreen({ navigation }) {
 
     if (regions == null) {
         return (<View>
-
+            <Text>Ytn htubjyjd
+            </Text>
         </View>)
     }
 
@@ -177,7 +179,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#fff',
         fontFamily: 'Raleway_400Regular',
-        width:'100%'
+        width: '100%'
     },
 
 

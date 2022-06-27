@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text, Image, TextInput, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, Image, TextInput, TouchableOpacity, ImageBackground, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import { Ionicons, FontAwesome5, Fontisto } from '@expo/vector-icons';
@@ -6,7 +6,7 @@ import { useLayoutEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { domain_mobile, domain_web } from '../domain';
 import axios from 'axios';
-
+import { CommonActions } from '@react-navigation/native';
 
 function OrderСompletion({ navigation }) {
 
@@ -50,6 +50,7 @@ function OrderСompletion({ navigation }) {
 
 
   const createOrder = async () => {
+    
     try {
 
       const phone = await AsyncStorage.getItem("phone");
@@ -65,7 +66,7 @@ function OrderСompletion({ navigation }) {
           phone: phone,
           number: await AsyncStorage.getItem("car_number")
         });
-        await AsyncStorage.setItem("order_id", res.data.id.toString());
+      await AsyncStorage.setItem("order_id", res.data.id.toString());
       const token = await AsyncStorage.getItem("token");
       const create = await axios.post(domain_mobile + "/api/create_order",
         {
@@ -76,20 +77,20 @@ function OrderСompletion({ navigation }) {
             "Authorization": "Token " + token
           }
         });
-        let keys = await AsyncStorage.getAllKeys()
-        const stock = keys.filter(key => key.startsWith("stock"));
-        for (let i =0; i < stock.length; i++){
-          await AsyncStorage.removeItem(stock[i]);
-        }
-        const serv = keys.filter(key => key.startsWith("servise_"));
-        for (let i =0; i < serv.length; i++){
-          await AsyncStorage.removeItem(serv[i]);
-        }
-        navigation.navigate("CarWashes");
-        navigation.navigate("Successful");
-
+      let keys = await AsyncStorage.getAllKeys()
+      await AsyncStorage.multiRemove(keys.filter(key => key.startsWith("stock") || key.startsWith("servise_")))
+      navigation.navigate("CarWashes");
+      setTimeout(() => navigation.navigate("Successful"), 1000)
     } catch (err) {
       console.log(err);
+      Alert.alert("Упс", "Даннное время уже забронировано");
+      navigation.dispatch(
+        CommonActions.reset({
+          index: 0,
+          routes: [{ name: "GeneralPriceList" },{ name: "PriceListFor" },{ name: "SelectDate" }]
+        }));
+      // navigation.navigate("SelectDate")
+      return;
     }
 
   }
@@ -97,10 +98,10 @@ function OrderСompletion({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image blurRadius={100} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
+      <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       <View style={styles.blurContainer}>
-        <View style={[styles.row, { justifyContent: 'center', marginTop: '5%' }]}>
-          <TouchableOpacity onPress={() => navigation.navigate('SelectPaymentMethod')} activeOpacity={0.7} style={{ position: 'absolute', zIndex: 1 }}>
+        <View style={[styles.row, { justifyContent: 'center', alignItems: "center", width: "100%", marginTop: '5%' }]}>
+          <TouchableOpacity onPress={() => navigation.navigate('SelectPaymentMethod')} activeOpacity={0.7} style={{ position: 'absolute', left: "3%", zIndex: 1 }}>
             <Ionicons name='chevron-back' size={28} color={'#7CD0D7'} />
           </TouchableOpacity>
           <Text style={styles.bold_text}>Завершение заказа</Text>
@@ -140,12 +141,12 @@ function OrderСompletion({ navigation }) {
             </View>
             <View style={styles.gradient_background_padding}>
               <Text style={styles.subtext}>скидка</Text>
-              <Text style={styles.text}>{sale}</Text>
+              <Text style={styles.text}>{sale}%</Text>
               <LinearGradient colors={['#00266F', '#7BCFD6']} start={[1, 0]} style={styles.gradient_line} />
             </View>
             <View style={styles.gradient_background_padding}>
               <Text style={styles.subtext}>итого</Text>
-              <Text style={styles.text}>{total}</Text>
+              <Text style={styles.text}>{Math.ceil(parseInt(total) * (1 - parseInt(sale) / 100))}</Text>
             </View>
           </LinearGradient>
 

@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState, useLayoutEffect, useEffect } from 'react';
-import { StyleSheet, Button, View, Text, SafeAreaView, TextInput, TouchableOpacity, ImageBackground, Image, Alert, RefreshControl } from 'react-native';
+import { StyleSheet, Button, View, Text, SafeAreaView, TextInput, TouchableOpacity, ActivityIndicator, ImageBackground, Image, Alert, RefreshControl } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -8,7 +8,13 @@ import axios from 'axios';
 import { domain_mobile, domain_web } from '../domain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from "expo-location"
-import {getDistance} from "geolib"
+import { getDistance } from "geolib"
+import { Picker } from '@react-native-picker/picker';
+
+
+
+
+
 function CarWashes({ navigation, route }) {
 
   const [washes, setWashes] = useState([]);
@@ -16,6 +22,9 @@ function CarWashes({ navigation, route }) {
   const [countCar, setCountCar] = useState(0);
   const [location, setLocation] = useState("");
   const [coords, setCoords] = useState(null);
+  const [locations, setLocations] = useState([]);
+  const [bView, setBVeiw] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -37,17 +46,24 @@ function CarWashes({ navigation, route }) {
         console.log("Not location");
       }
       const col = await Location.getLastKnownPositionAsync();
-      setCoords({latitude: col.coords.latitude, longitude: col.coords.longitude})
+      setCoords({ latitude: col.coords.latitude, longitude: col.coords.longitude })
       try {
+        const ret = await axios.get(domain_web + "/get_country")
+        setLocations(ret.data.country)
         const location = await AsyncStorage.getItem("location");
-        setLocation(location)
+        if (location != null) {
+          setLocation(location)
+        }
+        else {
+          setLocation(ret.data.country[0]);
+        }
         const phone = await AsyncStorage.getItem("phone");
         const res = await axios.get(domain_web + "/get_catalog",
           {
             params: {
               filter: route.params == undefined ? [] : route.params.filters,
               sorted: route.params == undefined ? 0 : route.params.sorted,
-              location: location,
+              location: location == null ? ret.data.country[0] : location,
               phone: phone
             }
           }
@@ -55,13 +71,14 @@ function CarWashes({ navigation, route }) {
         setStock(res.data.stock);
         setWashes(res.data.washer);
         const token = await AsyncStorage.getItem("token");
-        if (token != null){
+        if (token != null) {
           const cars = await axios.get(domain_mobile + "/api/get_cars", { headers: { "Authorization": "Token " + token } });
           setCountCar(cars.data.length);
-        }else{
+        } else {
           setCountCar(1)
         }
-       
+
+
       }
       catch (err) {
         console.log(err);
@@ -92,6 +109,28 @@ function CarWashes({ navigation, route }) {
   const [refreshing, setRefresing] = useState(false);
 
 
+
+  const newLocation = async (value) => {
+    setLoading(true);
+    setLocation(value);
+    await AsyncStorage.setItem("location", value);
+    const phone = await AsyncStorage.getItem("phone");
+    const res = await axios.get(domain_web + "/get_catalog",
+      {
+        params: {
+          filter: route.params == undefined ? [] : route.params.filters,
+          sorted: route.params == undefined ? 0 : route.params.sorted,
+          location: value,
+          phone: phone
+        }
+      }
+    );
+    setStock(res.data.stock);
+    setWashes(res.data.washer);
+    setLoading(false)
+  }
+
+
   const refresh = async () => {
     setRefresing(true);
     try {
@@ -120,21 +159,28 @@ function CarWashes({ navigation, route }) {
     }
   }
 
-
   return (
     <SafeAreaView style={styles.container} >
       <ScrollView style={styles.main}>
-        <RefreshControl 
-        refreshing={refreshing}
-        onRefresh={refresh}
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={refresh}
         />
         <Text style={styles.subtext}>местоположение</Text>
-        <TouchableOpacity activeOpacity={0.7}>
+        <TouchableOpacity activeOpacity={0.7} onPress={() => setBVeiw(!bView)}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: '0%' }}>
             <Text style={styles.city}>{location}</Text>
             <Ionicons name='chevron-forward' size={24} style={{ color: '#7CD0D7' }} />
           </View>
         </TouchableOpacity>
+        {bView &&
+          <Picker
+            selectedValue={location}
+            itemStyle={{ height: 150 }}
+            onValueChange={(value, index) => newLocation(value)}>
+            {locations.map(obj => <Picker.Item color='#fff' key={obj} label={obj} value={obj} />)}
+          </Picker>}
+
         <LinearGradient colors={['#00266F', '#7BCFD6']} start={[1, 0]} style={styles.gradient_line} />
 
         <LinearGradient
@@ -157,7 +203,7 @@ function CarWashes({ navigation, route }) {
         </LinearGradient>
 
         <View style={{ marginBottom: 50 }}>
-          {washes.map((obj, ind) => {
+          {!loading ? washes.map((obj, ind) => {
             return (
               <TouchableOpacity key={obj.id} onPress={() => selectWasher(obj.id, obj.sale)} activeOpacity={0.7} style={styles.mt_TouchOpac}>
                 <LinearGradient
@@ -169,16 +215,16 @@ function CarWashes({ navigation, route }) {
                     <View style={{ marginRight: '20%' }}>
                       <Text style={styles.stocks}>{obj.address}</Text>
                       <Text style={styles.text_in_item}>Скидка {obj.sale}%</Text>
-                      <Text style={styles.text_in_item}>В {getDistance(coords, {latitude: parseFloat(obj.lat), longitude: parseFloat(obj.lon)})}м от вас</Text>
+                      <Text style={styles.text_in_item}>В {getDistance(coords, { latitude: parseFloat(obj.lat), longitude: parseFloat(obj.lon) })}м от вас</Text>
                     </View>
                     <LinearGradient colors={['#FFF73780', '#FFF97480']} start={[1, 0]} style={styles.rating} >
-                      <Text style={styles.stocks}>{(obj.rate.mean_rate / obj.rate.count_rate).toFixed(2)}</Text>
+                      <Text style={styles.stocks}>{obj.rate.count_rate == 0 ? "0.00" : (obj.rate.mean_rate / obj.rate.count_rate).toFixed(2)}</Text>
                     </LinearGradient>
                   </View>
                 </LinearGradient>
               </TouchableOpacity>
             )
-          })}
+          }) : <ActivityIndicator /> }
         </View>
 
       </ScrollView>

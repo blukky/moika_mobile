@@ -10,8 +10,8 @@ import axios from 'axios';
 import { domain_mobile, domain_web } from '../domain';
 import { color } from 'react-native-reanimated';
 import { Picker } from '@react-native-picker/picker';
-
-
+import MaskInput from 'react-native-mask-input'
+import { CommonActions } from '@react-navigation/native';
 
 
 function AddEditCar({ navigation, route }) {
@@ -21,6 +21,8 @@ function AddEditCar({ navigation, route }) {
   const [id, setId] = useState(route.params.id);
   const [carBody, setCarBody] = useState([]);
   const [bCar, setBCar] = useState(false);
+  const [mask, setMask] = useState([/[А|В|Е|К|М|Н|О|Р|С|Т|У|Х]/, /\d/, /\d/, /\d/, /[А|В|Е|К|М|Н|О|Р|С|Т|У|Х]/, /[А|В|Е|К|М|Н|О|Р|С|Т|У|Х]/, /\d/, /\d/, /\d/]);
+
 
   useLayoutEffect(() => {
     (async () => {
@@ -41,7 +43,8 @@ function AddEditCar({ navigation, route }) {
 
   const saveCar = async () => {
     try {
-      const token = await AsyncStorage.getItem("token");
+      if (number.length >= 8){
+        const token = await AsyncStorage.getItem("token");
       const res = await axios.post(domain_mobile + "/api/edit_car",
         {
           "id": id,
@@ -54,7 +57,13 @@ function AddEditCar({ navigation, route }) {
           }
         }
       );
-      navigation.replace("MyCars");
+      }
+      
+      navigation.dispatch(
+        CommonActions.reset({
+            index: 0,
+            routes: [{name: "PersonalAccountScreen"},{ name: "MyCars" }]
+        }));
     }
     catch (err) {
       console.log(err);
@@ -65,14 +74,14 @@ function AddEditCar({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      <Image blurRadius={100} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
+      <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       {/* <BlurView intensity={100} style={styles.blurContainer}> */}
       <View style={styles.blurContainer}>
         <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={{}}>
           <Ionicons name='close' size={28} color={'#7CD0D7'} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
-          <Text style={styles.bold_text}>{ route.params.title }</Text>
+          <Text style={styles.bold_text}>{route.params.title}</Text>
         </View>
 
         <LinearGradient
@@ -88,9 +97,9 @@ function AddEditCar({ navigation, route }) {
             </TouchableOpacity>
             {bCar && <Picker
               selectedValue={body}
-              onValueChange={(value , index) => setBody(value)}
+              onValueChange={(value, index) => setBody(value)}
               itemStyle={{ height: 150 }}
-              >
+            >
               {carBody.map((obj, ind) => <Picker.Item color='#fff' key={ind} label={obj.name} value={obj.name} />)}
             </Picker>}
             <LinearGradient colors={['#00266F', '#7BCFD6']} start={[1, 0]} style={styles.gradient_line} />
@@ -98,7 +107,7 @@ function AddEditCar({ navigation, route }) {
 
           <View style={styles.mt}>
             <Text style={styles.subtext}>номер автомобиля</Text>
-            <TextInput style={styles.text} maxLength={10} value={number} onChangeText={text => setNumber(text)} />
+            <MaskInput style={styles.text} maxLength={9} autoCapitalize="characters" value={number} mask={mask} onChangeText={(masked, unmasked) => setNumber(masked)} />
             <LinearGradient colors={['#00266F', '#7BCFD6']} start={[1, 0]} style={styles.gradient_line} />
           </View>
 

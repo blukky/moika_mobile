@@ -6,7 +6,7 @@ import { ScrollView } from 'react-native-gesture-handler';
 import { BlurView } from 'expo-blur';
 import { CheckBox, Icon } from 'react-native-elements';
 import axios from 'axios';
-import { domain_web } from '../domain';
+import { domain_mobile, domain_web } from '../domain';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 function GeneralPriceList({ navigation }) {
 
   const [cars, setCars] = useState([]);
+  const [myCars, setMyCars] = useState([]);
 
   useLayoutEffect(() => {
     (async () => {
@@ -22,6 +23,9 @@ function GeneralPriceList({ navigation }) {
         const washer = await AsyncStorage.getItem("washer")
         const res = await axios.get(domain_web + `/get_body/${washer}`);
         setCars(res.data);
+        const token = await AsyncStorage.getItem("token");
+        const ret = await axios.get(domain_mobile + "/api/get_cars", {headers: {"Authorization": "Token " + token}});
+        setMyCars(ret.data.map(obj => obj.body))
       }
       catch (err) {
         console.log(err);
@@ -38,18 +42,18 @@ function GeneralPriceList({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Image blurRadius={100} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
+      <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       {/* <BlurView intensity={100} style={styles.blurContainer}> */}
       <View style={styles.blurContainer}>
-        <View style={[styles.row, { justifyContent: 'center', marginTop: '5%' }]}>
-          <TouchableOpacity onPress={() => navigation.navigate('PointCarWash')} activeOpacity={0.7} style={{ position: 'absolute', zIndex: 1 }}>
+        <View style={[styles.row, { justifyContent: 'center', marginTop: '5%', width: "100%" }]}>
+          <TouchableOpacity onPress={() => navigation.navigate('PointCarWash')} activeOpacity={0.7} style={{ position: 'absolute', left: "3%", zIndex: 1 }}>
             <Ionicons name='close' size={28} color={'#7CD0D7'} />
           </TouchableOpacity>
           <Text style={styles.bold_text}>ТИП КУЗОВА</Text>
         </View>
 
         <ScrollView style={styles.mt}>
-          {cars.map((obj) => {
+          {cars.filter(obj => myCars.indexOf(obj.name) != -1).map((obj) => {
             return (
               <TouchableOpacity key={obj.id} onPress={() => setBody(obj)} activeOpacity={0.7} >
                 <LinearGradient

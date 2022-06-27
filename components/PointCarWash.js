@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useLayoutEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Button, View, Text, SafeAreaView, TextInput, Dimensions, TouchableOpacity, ImageBackground, Image } from 'react-native';
+import { ActivityIndicator, StyleSheet, Button, View, Text, SafeAreaView, TextInput, Dimensions, Alert, TouchableOpacity, ImageBackground, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -7,6 +7,7 @@ import axios from 'axios';
 import { domain_web } from '../domain';
 import PageSlider from '@pietile-native-kit/page-slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CommonActions } from '@react-navigation/native';
 import Carousel, { Pagination } from 'react-native-snap-carousel';
 function PointCarWash({ navigation, route }) {
 
@@ -22,9 +23,6 @@ function PointCarWash({ navigation, route }) {
   useLayoutEffect(() => {
     (async () => {
       const token = await AsyncStorage.getItem("token");
-      if (token != null) {
-        setIsAuthenticated(true);
-      }
       const washer = await AsyncStorage.getItem("washer");
       const res = await axios.get(domain_web + `/get_washer/${washer}`,)
       setFilt(Object.keys(res.data.photo));
@@ -33,11 +31,19 @@ function PointCarWash({ navigation, route }) {
       navigation.setOptions({
         title: res.data.washer.name_washer,
         headerRight: () => (
-          <TouchableOpacity onPress={() => {
-            if (isAuthenticated) { props.navigation.navigate('MakingOrderScreen') } else {
+          <TouchableOpacity onPress={ async () => {
+            if (token != null) {
+              const washer = await AsyncStorage.getItem("washer")
+              const res = await axios.get(domain_web + "/" + washer + "/get_work_time");
+              if (Object.keys(res.data).length != 0) {
+                navigation.navigate('MakingOrderScreen');
+              }else{
+                Alert.alert("Ошибка", "В данную автомойку нельзя записаться");
+              }
+            } else {
               Alert.alert('Внимаение', 'Вы не авторизованы', [{ 'text': 'Ок' }, {
                 'text': 'Войти', onPress: async () => {
-                  await AsyncStorage.multiRemove(await AsyncStorage.getAllKeys());
+                  await AsyncStorage.multiRemove((await AsyncStorage.getAllKeys()).filter(obj => obj != "first_join_app"));
                   navigation.dispatch(
                     CommonActions.reset({
                       index: 0,

@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, ImageBackground, Image } from 'react-native';
+import { StyleSheet, View, Text, SafeAreaView, TextInput, TouchableOpacity, ImageBackground, Image, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { ScrollView } from 'react-native-gesture-handler';
@@ -26,25 +26,37 @@ function SelectDate({ navigation }) {
       const res = await axios.get(domain_web + "/" + washer + "/get_work_time");
 
       setData(res.data);
-      setSelectDay(Object.keys(res.data)[0]);
-      setSelectTime(res.data[Object.keys(res.data)[0]][0]);
+      if (Object.keys(res.data).length != 0) {
+        setSelectDay(Object.keys(res.data)[0]);
+        setSelectTime(res.data[Object.keys(res.data)[0]][0]);
+      }else{
+        Alert.alert("Ошибка", "У данной автомойки еще нет графика работ");
+        navigation.navigate("CarWashes");
+      }
     })();
   }, [navigation])
 
 
   const clickNext = async () => {
-      await AsyncStorage.setItem("order_time", selectTime);
-      await AsyncStorage.setItem("order_day", selectDay);
-      navigation.navigate('SelectCar');
+    await AsyncStorage.setItem("order_time", selectTime);
+    await AsyncStorage.setItem("order_day", selectDay);
+    navigation.navigate('SelectCar');
+  }
+
+
+  const goBack = async () => {
+    let keys = await AsyncStorage.getAllKeys()
+    await AsyncStorage.multiRemove(keys.filter(key => key.startsWith("stock") || key.startsWith("servise_")))
+    navigation.navigate('PriceListFor')
   }
 
 
   return (
     <View style={styles.container}>
-      <Image blurRadius={100} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
+      <Image blurRadius={91} style={[StyleSheet.absoluteFill, styles.image]} source={require('../assets/images/blur_background.png')} resizeMode='cover' />
       <View style={styles.blurContainer}>
-        <View style={[styles.row, { justifyContent: 'center', marginTop: '5%' }]}>
-          <TouchableOpacity onPress={() => navigation.navigate('PriceListFor')} activeOpacity={0.7} style={{ position: 'absolute', zIndex: 1 }}>
+        <View style={[styles.row, { alignItems: 'center', justifyContent: 'center', marginTop: '5%', width: "100%" }]}>
+          <TouchableOpacity onPress={goBack} activeOpacity={0.7} style={{ position: 'absolute', left: "3%", zIndex: 1 }}>
             <Ionicons name='chevron-back' size={28} color={'#7CD0D7'} />
           </TouchableOpacity>
           <Text style={styles.bold_text}>Выберите дату записи</Text>
@@ -63,8 +75,8 @@ function SelectDate({ navigation }) {
           </TouchableOpacity>
           {bDay && <Picker
             selectedValue={selectDay}
-            onValueChange={(value, index) => {setSelectDay(value); setSelectTime(data[value][0])}}>
-            {Object.keys(data).map((obj, ind) => <Picker.Item key={ind} label={obj} value={obj} />)}
+            onValueChange={(value, index) => { setSelectDay(value); setSelectTime(data[value][0]) }}>
+            {Object.keys(data).map((obj, ind) => <Picker.Item color='#fff' key={ind} label={obj} value={obj} />)}
           </Picker>}
         </LinearGradient>
 
@@ -82,8 +94,8 @@ function SelectDate({ navigation }) {
           </TouchableOpacity>
           {bTime && <Picker
             selectedValue={selectTime}
-            onValueChange={(value, index) => {setSelectTime(value) }}>
-            {data[selectDay].map((obj, ind) => <Picker.Item key={ind} label={obj} value={obj} />)}
+            onValueChange={(value, index) => { setSelectTime(value) }}>
+            {data[selectDay].map((obj, ind) => <Picker.Item color='#fff' key={ind} label={obj} value={obj} />)}
           </Picker>}
         </LinearGradient>
 
